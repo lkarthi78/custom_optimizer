@@ -35,7 +35,7 @@ class LossStoreCallback(tf.keras.callbacks.Callback):
                 self.model.stop_training = True
                 return
 
-            # baseline init (exactly once)
+            # baseline loss
             self.opt.prev_loss = self.opt.cur_loss
 
         # revise vars based on epoch loss + stored epoch grads
