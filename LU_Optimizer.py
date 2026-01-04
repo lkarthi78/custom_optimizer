@@ -133,8 +133,6 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
 
         # accumulate grads for epoch
         for grad, var in pairs:
-            if grad is None:
-                continue
             if isinstance(grad, tf.IndexedSlices):
                 grad = tf.convert_to_tensor(grad)
 

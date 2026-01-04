@@ -97,8 +97,6 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         def finalize_avg():
             denom = tf.cast(self.steps_per_epoch, tf.float32)
             for g, v in grads_and_vars:
-                if g is None:
-                    continue
                 acc = self._slot(self._acc_grad, v)
                 grd = self._slot(self._grad, v)
                 grd.assign(acc / tf.cast(denom, acc.dtype))

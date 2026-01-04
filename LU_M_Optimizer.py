@@ -10,7 +10,7 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
 
     def __init__(self, learning_rate=1e-3, i_alpha=10, d_alpha=2,
                  steps_per_epoch=1, name="LU_Optimizer", **kwargs):
-        super().__init__(learning_rate=learning_rate, name=name, **kwargs)
+        super().__init__(learning_rate=learning_rate, name=name)
 
         self.steps_per_epoch = int(steps_per_epoch)
         self.i_alpha = float(i_alpha)
@@ -99,8 +99,6 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         if batch_in_epoch == self.steps_per_epoch - 1:
             denom = float(self.steps_per_epoch)
             for g, v in grads_and_vars:
-                if g is None:
-                    continue
                 acc = self._slot(self._acc_grad, v)
                 grd = self._slot(self._grad, v)
                 grd.assign(acc / tf.cast(denom, acc.dtype))
