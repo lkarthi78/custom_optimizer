@@ -120,14 +120,14 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
                 cnt = self._slot(self._acc_cnt, v)
                 grd = self._slot(self._grad, v)
 
-        cnt_v = float(cnt.numpy())
+                cnt_v = float(cnt.numpy())
 
-        if cnt_v > 0.0:
-            denom = cnt_v
-        else:
-            denom = 1.0
+                if cnt_v > 0.0:
+                    denom = cnt_v
+                else:
+                    denom = 1.0
 
-        grd.assign(acc / tf.cast(denom, acc.dtype))
+                grd.assign(acc / tf.cast(denom, acc.dtype))
 
         # Move iterations
         self.iterations.assign_add(1)
