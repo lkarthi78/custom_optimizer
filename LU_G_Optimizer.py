@@ -23,7 +23,6 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         self._acc_grad = []
         self._grad = []
         self._acc_cnt = []   #per-variable accumulator count (scalar)
-
         # ---------------------------------------------------------------
 
     @property
@@ -170,7 +169,6 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
 
             def epoch_ge_1():
                 pl = self.prev_loss
-                #pl_p = tf.identity(self.prev_loss)   # snapshot old prev_loss
                 cl = cur_loss
 
                 reject = tf.logical_or(
@@ -189,7 +187,7 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
 
                 def reject_branch():
                     self._lr.assign(self._lr / self.i_alpha)
-                    #tf.print("\nREJECT | e=", epoch_idx, " cur=", cl, " prev=", pl_p, " lr->", self._lr)
+                    #tf.print("\nREJECT | e=", epoch_idx, " cur=", cl, " prev=", pl, " lr->", self._lr)
                     return 0
 
                 def accept_branch():
@@ -202,8 +200,8 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
 
                     factor = (self.i_alpha * (self.d_alpha - 1.0) + 1.0) / self.d_alpha
                     self._lr.assign(self._lr * factor)
+                    #tf.print("\nACCEPT | e=", epoch_idx, " cur=", cl, " prev=", pl, " lr->", self._lr)
                     self.prev_loss.assign(cl)
-                    #tf.print("\nACCEPT | e=", epoch_idx, " cur=", cl, " prev=", pl_p, " lr->", self._lr)
                     return 0
 
                 tf.cond(reject, reject_branch, accept_branch)
