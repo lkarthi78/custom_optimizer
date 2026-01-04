@@ -120,8 +120,14 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
                 cnt = self._slot(self._acc_cnt, v)
                 grd = self._slot(self._grad, v)
 
-                denom = max(float(cnt.numpy()), 1.0)
-                grd.assign(acc / tf.cast(denom, acc.dtype))
+        cnt_v = float(cnt.numpy())
+
+        if cnt_v > 0.0:
+            denom = cnt_v
+        else:
+            denom = 1.0
+
+        grd.assign(acc / tf.cast(denom, acc.dtype))
 
         # Move iterations
         self.iterations.assign_add(1)
@@ -201,8 +207,6 @@ class LUModel(tf.keras.Model):
         self.total_epochs = int(total_epochs)
 
     def compile(self, optimizer, *args, **kwargs):
-        # Force eager execution for numpy()-based logic
-        kwargs.setdefault("run_eagerly", True)
         super().compile(optimizer=optimizer, *args, **kwargs)
 
         if hasattr(self.optimizer, "steps_per_epoch"):

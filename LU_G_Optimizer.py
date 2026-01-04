@@ -115,7 +115,12 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
                 cnt = self._slot(self._acc_cnt, v)
                 grd = self._slot(self._grad, v)
 
-                denom = tf.maximum(cnt, 1.0)
+                denom = tf.cond(
+                    cnt > 0,
+                    lambda: cnt,
+                    lambda: tf.constant(1.0, dtype=cnt.dtype)
+                )
+
                 grd.assign(acc / tf.cast(denom, acc.dtype))
             return 0
 
