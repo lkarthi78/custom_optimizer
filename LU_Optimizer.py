@@ -69,7 +69,6 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         self._lr = float(learning_rate)
         self._built_once = False
 
-    # You already had this concept; make sure it exists in your file.
     def _var_key(self, v):
         k = getattr(v, "path", None) or v.name
         return k.split(":")[0]
