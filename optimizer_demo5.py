@@ -31,7 +31,7 @@ print("Class counts:", np.bincount(y_train))
 
 steps_per_epoch = 2
 batch_size =int(np.ceil(N / steps_per_epoch))
-epochs = 70
+epochs = 50
 
 # scale inputs 
 x_mean = x_train.mean(axis=0, keepdims=True)
