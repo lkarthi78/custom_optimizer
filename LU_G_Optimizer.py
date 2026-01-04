@@ -22,6 +22,8 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         self._p_grad = []
         self._acc_grad = []
         self._grad = []
+        self._acc_cnt = []   #per-variable accumulator count (scalar)
+
         # ---------------------------------------------------------------
 
     @property
@@ -67,6 +69,9 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
             self._grad.append(self.add_variable(
                 shape=v.shape, dtype=v.dtype, initializer="zeros", name=f"{sk}__grad"
             ))
+            self._acc_cnt.append(self.add_variable(
+                shape=(), dtype=tf.float32, initializer="zeros", name=f"{sk}__acc_cnt"
+            ))
 
             # init values
             self._p_var[i].assign(v)
@@ -74,31 +79,43 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
             self._p_grad[i].assign(z)
             self._acc_grad[i].assign(z)
             self._grad[i].assign(z)
+            self._acc_cnt[i].assign(0.0)
+
         if len(self._p_var) > 0:
             self.slots_built.assign(True)
 
     def accumulate_epoch_grads(self, grads_and_vars, batch_in_epoch):
         # Reset accumulator on batch 0; accumulate each batch
         for g, v in grads_and_vars:
+            acc = self._slot(self._acc_grad, v)
+            cnt = self._slot(self._acc_cnt, v)
+
+            def reset():
+                acc.assign(tf.zeros_like(acc))
+                cnt.assign(0.0)
+                return 0
+
+            tf.cond(tf.equal(batch_in_epoch, 0), reset, lambda: 0)
+
+            # ---- MUST check None FIRST ----
+            if g is None:
+                continue
+
             if isinstance(g, tf.IndexedSlices):
                 g = tf.convert_to_tensor(g)
             g = tf.cast(g, v.dtype)
 
-            acc = self._slot(self._acc_grad, v)
-
-            tf.cond(
-                tf.equal(batch_in_epoch, 0),
-                lambda acc=acc: acc.assign(tf.zeros_like(acc)),
-                lambda: 0.0
-            )
             acc.assign_add(g)
+            cnt.assign_add(1.0)
 
         # On last batch: average into grad slot
         def finalize_avg():
-            denom = tf.cast(self.steps_per_epoch, tf.float32)
-            for g, v in grads_and_vars:
+            for _, v in grads_and_vars:
                 acc = self._slot(self._acc_grad, v)
+                cnt = self._slot(self._acc_cnt, v)
                 grd = self._slot(self._grad, v)
+
+                denom = tf.maximum(cnt, 1.0)
                 grd.assign(acc / tf.cast(denom, acc.dtype))
             return 0
 

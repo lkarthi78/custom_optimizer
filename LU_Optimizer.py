@@ -2,6 +2,7 @@ import tensorflow as tf
 import math
 import numpy as np
 
+
 class LossStoreCallback(tf.keras.callbacks.Callback):
     def __init__(self, optimizer, total_epochs=10):
         super().__init__()
@@ -63,9 +64,15 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         self._p_grad = []
         self._var = []
         self._grad = []
+        self._cnt = []  # per-variable non-None grad count per epoch
 
         self._lr = float(learning_rate)
         self._built_once = False
+
+    # You already had this concept; make sure it exists in your file.
+    def _var_key(self, v):
+        k = getattr(v, "path", None) or v.name
+        return k.split(":")[0]
 
     def build(self, var_list):
         super().build(var_list)
@@ -79,24 +86,26 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         self._var = []
 
         n = len(var_list)
-        self._p_var = [None] * n        
+        self._p_var  = [None] * n
         self._p_grad = [None] * n
-        self._grad = [None] * n
+        self._grad   = [None] * n
+        self._cnt    = [0] * n   
 
         for i, v in enumerate(var_list):
             key = self._var_key(v)
             self._index[key] = i
-            self._var.append(v)       # variable refs
+            self._var.append(v)  # variable refs
+
             w = v.numpy().copy()
             self._p_grad[i] = np.zeros_like(w)
-            self._grad[i] = np.zeros_like(w)
+            self._grad[i]   = np.zeros_like(w)
+            self._cnt[i]    = 0
 
     def update_var(self):
         # skip last epoch (no need to propose next move)
         if self.current_epoch + 1 == self.total_epochs:
             return
 
-        # Reject test 
         reject = (
             self.cur_loss is None or
             math.isnan(self.cur_loss) or
@@ -114,6 +123,7 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
             for i, v in enumerate(self._var):
                 self._p_var[i] = v.numpy().copy()
                 self._p_grad[i] = self._grad[i].copy()
+
             if self.current_epoch != 0:
                 self._lr *= ((self.i_alpha * (self.d_alpha - 1) + 1) / self.d_alpha)
                 self.prev_loss = self.cur_loss
@@ -131,20 +141,30 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
         if not self._built_once:
             self.build([v for _, v in pairs])
 
-        # accumulate grads for epoch
+        # accumulate grads for epoch (track non-None grads per variable)
         for grad, var in pairs:
+            i = self._index[self._var_key(var)]
+
+            # reset per-epoch accumulators on first batch
+            if self.current_batch == 0:
+                self._grad[i].fill(0.0)
+                self._cnt[i] = 0
+
+            # Skip None grads
+            if grad is None:
+                continue
+
             if isinstance(grad, tf.IndexedSlices):
                 grad = tf.convert_to_tensor(grad)
 
-            i = self._index[self._var_key(var)]
-
-            if self.current_batch == 0:
-                self._grad[i].fill(0.0)
-
             self._grad[i] += grad.numpy()
+            self._cnt[i] += 1  # count only non-None grads
 
-            if self.current_batch == self.steps_per_epoch - 1:
-                self._grad[i] /= float(self.steps_per_epoch)
+        # finalize avg on last batch, per variable
+        if self.current_batch == self.steps_per_epoch - 1:
+            for i in range(len(self._var)):
+                denom = float(self._cnt[i]) if self._cnt[i] > 0 else 1.0
+                self._grad[i] /= denom
 
         # keep Keras iteration counter moving
         self.iterations.assign_add(1)
