@@ -275,9 +275,10 @@ class LUModel(tf.keras.Model):
 
         # Update metrics 
         for m in self.metrics:
-            if "loss" in m.name:
+            name = m.name.strip().lower()
+            if name == "loss":
                 m.update_state(loss)
-            else:
+            elif name == "compile_metrics":
                 m.update_state(y, y_pred)
 
         logs = {m.name: m.result() for m in self.metrics}
