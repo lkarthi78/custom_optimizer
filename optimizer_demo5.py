@@ -31,7 +31,7 @@ print("Class counts:", np.bincount(y_train))
 
 steps_per_epoch = 2
 batch_size =int(np.ceil(N / steps_per_epoch))
-epochs = 50
+epochs = 500
 
 # scale inputs 
 x_mean = x_train.mean(axis=0, keepdims=True)
@@ -49,7 +49,7 @@ model = tf.keras.Model(inputs=inputs, outputs=outputs)
 opt = LU_Optimizer(
     learning_rate=1e-3,
     i_alpha=10,
-    d_alpha=2,
+    d_alpha=1.5,
     steps_per_epoch=steps_per_epoch
 )
 

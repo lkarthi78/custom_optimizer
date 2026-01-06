@@ -46,7 +46,7 @@ outputs = tf.keras.layers.Dense(3, activation="softmax", name="Out")(x)
 model = LUModel(inputs=inputs, outputs=outputs,
                 steps_per_epoch=steps_per_epoch, total_epochs=epochs)
 
-opt = LU_Optimizer(learning_rate=1e-3, i_alpha=10, d_alpha=2, steps_per_epoch=steps_per_epoch)
+opt = LU_Optimizer(learning_rate=1e-3, i_alpha=10, d_alpha=1.5, steps_per_epoch=steps_per_epoch)
 
 model.compile(
     optimizer=opt,
