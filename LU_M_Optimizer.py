@@ -8,7 +8,7 @@ class LU_Optimizer(tf.keras.optimizers.Optimizer):
     Use with model.compile(..., run_eagerly=True).
     """
 
-    def __init__(self, learning_rate=1e-3, i_alpha=10, d_alpha=2,
+    def __init__(self, learning_rate=1e-3, i_alpha=10, d_alpha=1.5,
                  steps_per_epoch=1, name="LU_Optimizer", **kwargs):
         super().__init__(learning_rate=learning_rate, name=name, **kwargs)
 
